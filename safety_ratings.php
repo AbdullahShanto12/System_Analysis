@@ -1,3 +1,4 @@
+<?php include 'connect.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -67,66 +68,74 @@
           <li class="nav-item"><a href="legend_info.php" class="nav-link"><i class="nav-icon fas fa-map-signs"></i><p>Using the Legend</p></a></li>
           <li class="nav-item"><a href="send_notifications.php" class="nav-link"><i class="nav-icon fas fa-bell"></i><p>Send Notifications</p></a></li>
           <li class="nav-item"><a href="emergency_calls.php" class="nav-link "><i class="nav-icon fas fa-phone-alt"></i><p>Emergency Calls</p></a></li>
-          <li class="nav-item"><a href="login.html" class="nav-link"><i class="nav-icon fas fa-sign-out-alt"></i><p>Logout</p></a></li>
 
+          <li class="nav-item"><a href="login.html" class="nav-link"><i class="nav-icon fas fa-sign-out-alt"></i><p>Logout</p></a></li>
         </ul>
       </nav>
     </div>
   </aside>
 
-<!-- Content -->
-<div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <h3>Visual Interpretation of Safety Ratings</h3>
+  <!-- Content -->
+  <div class="content-wrapper">
+    <div class="content-header">
+      <div class="container-fluid">
+        <h3>Visual Interpretation of Safety Ratings</h3>
+      </div>
     </div>
-  </div>
-  <div class="content">
-    <div class="container-fluid">
-      <div class="card">
-        <div class="card-body">
-          
-          <!-- Detailed Safety Ratings Table -->
-          <div class="table-container">
-            <h5 class="mt-4">Detailed Safety Ratings Table</h5>
-            <table class="table table-bordered table-striped">
-              <thead class="thead-dark">
-                <tr>
-                  <th>Location</th>
-                  <th>Latitude</th>
-                  <th>Longitude</th>
-                  <th>Area Type</th>
-                  <th>Reported Incidents</th>
-                  <th>Safety Rating</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>Gulshan</td><td>23.7925</td><td>90.4078</td><td>Residential</td><td>3</td><td>High</td><td>Well-lit, security patrols</td></tr>
-                <tr><td>Mirpur</td><td>23.8041</td><td>90.3665</td><td>Mixed</td><td>10</td><td>Medium</td><td>Moderate activity at night</td></tr>
-                <tr><td>Uttara</td><td>23.8759</td><td>90.3795</td><td>Residential</td><td>4</td><td>High</td><td>Safe and monitored</td></tr>
-                <tr><td>Farmgate</td><td>23.7568</td><td>90.3885</td><td>Commercial</td><td>15</td><td>Low</td><td>High crowd density</td></tr>
-                <tr><td>Dhanmondi</td><td>23.7461</td><td>90.3748</td><td>Mixed</td><td>6</td><td>Medium</td><td>Some isolated areas</td></tr>
-                <tr><td>Old Dhaka</td><td>23.7099</td><td>90.4071</td><td>Dense Residential</td><td>18</td><td>Low</td><td>Poor street lighting</td></tr>
-                <tr><td>Banani</td><td>23.7936</td><td>90.4007</td><td>Commercial</td><td>5</td><td>Medium</td><td>Generally safe, but avoid late hours</td></tr>
-              </tbody>
-            </table>
+    <div class="content">
+      <div class="container-fluid">
+        <div class="card">
+          <div class="card-body">
+
+            <!-- Safety Ratings Table -->
+            <div class="table-container">
+              <h5 class="mt-4">Detailed Safety Ratings Table</h5>
+              <table class="table table-bordered table-striped">
+                <thead class="thead-dark">
+                  <tr>
+                    <th>Location</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Area Type</th>
+                    <th>Reported Incidents</th>
+                    <th>Safety Rating</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                <?php
+                $sql = "SELECT * FROM safety_ratings";
+                $result = $conn->query($sql);
+
+                if ($result->num_rows > 0) {
+                  while($row = $result->fetch_assoc()) {
+                    echo "<tr>
+                            <td>{$row['location']}</td>
+                            <td>{$row['latitude']}</td>
+                            <td>{$row['longitude']}</td>
+                            <td>{$row['area_type']}</td>
+                            <td>{$row['reported_incidents']}</td>
+                            <td>{$row['safety_rating']}</td>
+                            <td>{$row['notes']}</td>
+                          </tr>";
+                  }
+                } else {
+                  echo "<tr><td colspan='7'>No data found</td></tr>";
+                }
+                $conn->close();
+                ?>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Map -->
+            <div id="map" class="mt-4"></div>
+
           </div>
-
-          <!-- Map -->
-          <div id="map" class="mt-4"></div>
-
         </div>
       </div>
     </div>
   </div>
-</div>
-
-
-
-
-
-
 </div>
 
 <!-- Scripts -->
@@ -134,24 +143,13 @@
 <script src="plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="dist/js/adminlte.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-
 <script>
-  const map = L.map('map').setView([23.8103, 90.4125], 12); // Dhaka center
+  const map = L.map('map').setView([23.8103, 90.4125], 12);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18,
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
-
-  const locations = [
-    { lat: 23.7925, lng: 90.4078, rating: 'high', name: 'Gulshan' },
-    { lat: 23.8041, lng: 90.3665, rating: 'medium', name: 'Mirpur' },
-    { lat: 23.8759, lng: 90.3795, rating: 'high', name: 'Uttara' },
-    { lat: 23.7568, lng: 90.3885, rating: 'low', name: 'Farmgate' },
-    { lat: 23.7461, lng: 90.3748, rating: 'medium', name: 'Dhanmondi' },
-    { lat: 23.7099, lng: 90.4071, rating: 'low', name: 'Old Dhaka' },
-    { lat: 23.7936, lng: 90.4007, rating: 'medium', name: 'Banani' }
-  ];
 
   function getColor(rating) {
     return rating === 'high' ? 'green' :
@@ -159,16 +157,21 @@
            'red';
   }
 
-  locations.forEach(loc => {
-    L.circleMarker([loc.lat, loc.lng], {
-      radius: 10,
-      fillColor: getColor(loc.rating),
-      color: "#fff",
-      weight: 1,
-      opacity: 1,
-      fillOpacity: 0.7
-    }).bindPopup(`<b>${loc.name}</b><br>Safety: ${loc.rating.toUpperCase()}`).addTo(map);
-  });
+  fetch('get_safety_data.php')
+    .then(res => res.json())
+    .then(locations => {
+      locations.forEach(loc => {
+        L.circleMarker([loc.latitude, loc.longitude], {
+          radius: 10,
+          fillColor: getColor(loc.safety_rating.toLowerCase()),
+          color: "#fff",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.7
+        }).bindPopup(`<b>${loc.location}</b><br>Safety: ${loc.safety_rating.toUpperCase()}`).addTo(map);
+      });
+    })
+    .catch(error => console.error('Error loading data:', error));
 
   const legend = L.control({position: 'bottomright'});
   legend.onAdd = function () {
@@ -181,6 +184,5 @@
   };
   legend.addTo(map);
 </script>
-
 </body>
 </html>

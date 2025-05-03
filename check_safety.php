@@ -65,13 +65,12 @@
                     <li class="nav-item"><a href="map_explore.php" class="nav-link"><i class="nav-icon fas fa-map"></i><p>Map Exploration</p></a></li>
                     <li class="nav-item"><a href="safety_ratings.php" class="nav-link"><i class="nav-icon fas fa-eye"></i><p>Visual Safety Ratings</p></a></li>
                     <li class="nav-item"><a href="check_safety.php" class="nav-link active"><i class="nav-icon fas fa-shield-alt"></i><p>Check Before Going Out</p></a></li>
-                    <li class="nav-item"><a href="identify_routes.php" class="nav-link "><i class="nav-icon fas fa-route"></i><p>Identifying Safer Routes</p></a></li>
+                    <li class="nav-item"><a href="identify_routes.php" class="nav-link"><i class="nav-icon fas fa-route"></i><p>Identifying Safer Routes</p></a></li>
                     <li class="nav-item"><a href="understand_factors.php" class="nav-link"><i class="nav-icon fas fa-info-circle"></i><p>Understanding Safety Factors</p></a></li>
                     <li class="nav-item"><a href="legend_info.php" class="nav-link"><i class="nav-icon fas fa-map-signs"></i><p>Using the Legend</p></a></li>
                     <li class="nav-item"><a href="send_notifications.php" class="nav-link"><i class="nav-icon fas fa-bell"></i><p>Send Notifications</p></a></li>
-                    <li class="nav-item"><a href="emergency_calls.php" class="nav-link "><i class="nav-icon fas fa-phone-alt"></i><p>Emergency Calls</p></a></li>
+                    <li class="nav-item"><a href="emergency_calls.php" class="nav-link"><i class="nav-icon fas fa-phone-alt"></i><p>Emergency Calls</p></a></li>
                     <li class="nav-item"><a href="login.html" class="nav-link"><i class="nav-icon fas fa-sign-out-alt"></i><p>Logout</p></a></li>
-
                 </ul>
             </nav>
         </div>
@@ -89,9 +88,8 @@
             <div id="result" class="mt-3"></div>
             <div id="map" class="mt-4"></div>
 
-            <!-- New Features -->
+            <!-- Feature Cards -->
             <div id="features" class="mt-4">
-
                 <div class="feature-card">
                     <div class="feature-title">1. Time-Sensitive Safety Advisory</div>
                     <div id="timeAdvisory">Checking...</div>
@@ -99,11 +97,7 @@
 
                 <div class="feature-card">
                     <div class="feature-title">2. Nearby Police Stations</div>
-                    <ul id="policeList">
-                        <li>Dhanmondi Thana – 1.2km</li>
-                        <li>New Market Police Box – 2.1km</li>
-                        <li>Lalmatia Police Post – 2.9km</li>
-                    </ul>
+                    <ul id="policeList"></ul>
                 </div>
 
                 <div class="feature-card">
@@ -117,29 +111,23 @@
 
                 <div class="feature-card">
                     <div class="feature-title">4. Weather-Based Advisory</div>
-                    <div>It might rain in the evening. Carry an umbrella. Avoid slippery footpaths.</div>
+                    <div id="weatherAdvisory">...</div>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-title">5. Crowd Density Estimator</div>
-                    <div>Estimated: <strong>Medium</strong> crowd in your area right now.</div>
+                    <div id="crowdDensity">...</div>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-title">6. Last Reported Incidents</div>
-                    <ul>
-                        <li>Pickpocketing near Mirpur Road – 2 days ago</li>
-                        <li>Suspicious activity in Kalabagan – 5 days ago</li>
-                        <li>Street harassment near Science Lab – 6 days ago</li>
-                    </ul>
+                    <ul id="incidentList"></ul>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-title">7. Public Transport Safety Score</div>
-                    <div>Buses in Dhanmondi: <span style="color:green;">Safe (Score: 82)</span></div>
-                    <div>Rickshaws in Lalmatia: <span style="color:orange;">Moderate (Score: 57)</span></div>
+                    <div id="transportScores"></div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -152,63 +140,82 @@
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
 <script>
-    const map = L.map('map').setView([23.8103, 90.4125], 13); // Dhaka
+    const map = L.map('map').setView([23.8103, 90.4125], 13); // Default Dhaka view
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 18,
     }).addTo(map);
-
     let currentMarker;
 
     function checkSafety() {
-        const location = document.getElementById('locationInput').value;
+        const location = document.getElementById('locationInput').value.trim();
         if (!location) return alert("Please enter a location.");
 
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location + ', Dhaka')}`)
+        fetch(`get_check_safety.php?location=${encodeURIComponent(location)}`)
             .then(response => response.json())
             .then(data => {
-                if (data.length === 0) {
-                    alert("Location not found.");
+                if (data.error) {
+                    alert(data.error);
                     return;
                 }
 
-                const lat = data[0].lat;
-                const lon = data[0].lon;
+                const {
+                    lat, lon, safety_score, police_stations,
+                    weather_advisory, crowd_density, incidents, transport_scores
+                } = data;
 
+                // Update map
                 if (currentMarker) map.removeLayer(currentMarker);
                 currentMarker = L.marker([lat, lon]).addTo(map).bindPopup(location).openPopup();
                 map.setView([lat, lon], 15);
 
-                // Safety score (mocked)
-                const safetyScore = Math.floor(Math.random() * 100) + 1;
-                let safetyColor = 'gray';
-
-                if (safetyScore > 70) safetyColor = 'green';
-                else if (safetyScore > 40) safetyColor = 'orange';
-                else safetyColor = 'red';
-
+                // Safety Score
+                let safetyColor = safety_score > 70 ? 'green' : (safety_score > 40 ? 'orange' : 'red');
                 document.getElementById('result').innerHTML = `
                     <div class="safety-score" style="background-color:${safetyColor}; color:white;">
-                        Safety Score: ${safetyScore}/100
+                        Safety Score: ${safety_score}/100
                     </div>
                 `;
+
+                // Police Stations
+                const policeList = document.getElementById('policeList');
+                policeList.innerHTML = "";
+                police_stations.forEach(station => {
+                    const li = document.createElement("li");
+                    li.textContent = station;
+                    policeList.appendChild(li);
+                });
+
+                // Weather
+                document.getElementById('weatherAdvisory').textContent = weather_advisory;
+
+                // Crowd
+                document.getElementById('crowdDensity').innerHTML =
+                    `Estimated: <strong>${crowd_density}</strong> crowd in your area right now.`;
+
+                // Incidents
+                const incidentList = document.getElementById('incidentList');
+                incidentList.innerHTML = "";
+                incidents.forEach(item => {
+                    const li = document.createElement("li");
+                    li.textContent = item;
+                    incidentList.appendChild(li);
+                });
+
+                // Transport
+                const transportDiv = document.getElementById('transportScores');
+                transportDiv.innerHTML = "";
+                for (const [type, score] of Object.entries(transport_scores)) {
+                    transportDiv.innerHTML += `<div>${type}: <span>${score}</span></div>`;
+                }
+
+                // Time-Sensitive Advisory
+                const hour = new Date().getHours();
+                let message = (hour >= 18 || hour <= 5)
+                    ? "It's dark outside. Be extra cautious and avoid poorly lit areas."
+                    : "It's daytime. Still, remain alert and aware of your surroundings.";
+                document.getElementById('timeAdvisory').textContent = message;
             });
     }
-
-    // Time-based advisory
-    function updateTimeAdvisory() {
-        const hour = new Date().getHours();
-        let advisory = "";
-        if (hour >= 22 || hour < 5) {
-            advisory = "<span style='color:red;'>Not Safe: Avoid going out late night alone.</span>";
-        } else if (hour >= 18) {
-            advisory = "<span style='color:orange;'>Moderate: Go with caution. Stay in lit areas.</span>";
-        } else {
-            advisory = "<span style='color:green;'>Safe: Daytime travel is generally safe.</span>";
-        }
-        document.getElementById('timeAdvisory').innerHTML = advisory;
-    }
-
-    updateTimeAdvisory();
 </script>
 
 </body>

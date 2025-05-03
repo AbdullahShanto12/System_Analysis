@@ -90,60 +90,56 @@
             </div>
         </section>
 
+
+
+
         <section class="content">
-            <div class="container-fluid">
-                <div class="card card-info">
-                    <div class="card-header"><h3 class="card-title">Search for a Location</h3></div>
-                    <div class="card-body">
-                        <form id="location-form">
-                            <div class="input-group search-box">
-                                <input type="text" id="location-input" class="form-control" placeholder="Enter a location (e.g. Dhanmondi, Dhaka)">
-                                <div class="input-group-append">
-                                    <button type="submit" class="btn btn-info">Search</button>
-                                </div>
-                            </div>
-                        </form>
+    <div class="container-fluid">
+        <div class="card card-info">
+            <div class="card-header">
+                <h3 class="card-title">Search for a Location</h3>
+            </div>
+            <div class="card-body">
+                <form id="location-form">
+                    <div class="input-group search-box">
+                        <input type="text" id="location-input" class="form-control" placeholder="Enter a location (e.g. Dhanmondi, Dhaka)">
+                        <div class="input-group-append">
+                            <button type="submit" class="btn btn-info">Search</button>
+                        </div>
+                    </div>
+                </form>
 
-                        <div id="map"></div>
+                <div id="map" class="mt-3 mb-4" style="height: 400px;"></div>
 
-                        <div class="row">
-                            <div class="col-md-6 info-card">
-                                <div class="info-box">
-                                    <h5>📊 Safety Score</h5>
-                                    <p><span id="safety-score" class="highlight">Loading...</span></p>
-                                </div>
-                            </div>
+                <div class="row">
+                    <div class="col-md-6 info-card">
+                        <div class="info-box">
+                            <h5>📊 Safety Score</h5>
+                            <p><span id="safety-score" class="highlight"></span></p>
+                        </div>
+                    </div>
 
-                            <div class="col-md-6 info-card">
-                                <div class="info-box">
-                                    <h5>🏥 Nearby Hospitals</h5>
-                                    <ul id="hospital-list">
-                                        <li>Dhaka Medical College Hospital</li>
-                                        <li>United Hospital</li>
-                                        <li>Square Hospital</li>
-                                    </ul>
-                                </div>
-                            </div>
+                    <div class="col-md-6 info-card">
+                        <div class="info-box">
+                            <h5>🏥 Nearby Hospitals</h5>
+                            <ul id="hospital-list"></ul>
+                        </div>
+                    </div>
 
-                            <div class="col-md-6 info-card">
-                                <div class="info-box">
-                                    <h5>👮 Nearby Police Stations</h5>
-                                    <ul id="police-list">
-                                        <li>Dhanmondi Police Station</li>
-                                        <li>Gulshan Police Station</li>
-                                        <li>Banani Police Station</li>
-                                    </ul>
-                                </div>
-                            </div>
+                    <div class="col-md-6 info-card">
+                        <div class="info-box">
+                            <h5>👮 Nearby Police Stations</h5>
+                            <ul id="police-list"></ul>
+                        </div>
+                    </div>
 
-                            <div class="col-md-6 info-card">
+                    <div class="col-md-6 info-card">
                                 <div class="info-box">
                                     <h5>📈 Crime Trends (Last 30 Days)</h5>
                                     <p>Moderate increase in petty theft reported in nearby areas.</p>
                                 </div>
                             </div>
-
-                            <div class="col-md-6 info-card">
+                    <div class="col-md-6 info-card">
                                 <div class="info-box">
                                     <h5>📞 Emergency Contact Info</h5>
                                     <ul>
@@ -153,6 +149,7 @@
                                     </ul>
                                 </div>
                             </div>
+
 
                             <div class="col-md-6 info-card">
                                 <div class="info-box">
@@ -164,12 +161,13 @@
                                     </ul>
                                 </div>
                             </div>
-                        </div>
 
-                    </div> <!-- card-body -->
                 </div>
-            </div>
-        </section>
+            </div> <!-- /.card-body -->
+        </div>
+    </div>
+</section>
+
     </div>
 </div>
 
@@ -181,6 +179,88 @@
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
 <script>
+
+
+
+
+
+
+
+
+document.getElementById("location-form").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const query = document.getElementById("location-input").value.trim();
+    if (!query) return;
+
+    // Geocode location
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Dhaka")}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.length > 0) {
+                const place = data[0];
+                const lat = place.lat;
+                const lon = place.lon;
+
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([lat, lon]).addTo(map)
+                    .bindPopup(`<strong>${place.display_name}</strong>`).openPopup();
+
+                map.setView([lat, lon], 15);
+
+                // Fetch safety details from PHP backend
+                fetch(`get_location_data.php?location=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) {
+                            document.getElementById("safety-score").textContent = "N/A";
+                            console.warn(data.error);
+                            return;
+                        }
+
+                        document.getElementById("safety-score").textContent = `${data.safety_score}/10`;
+
+                        // Hospitals
+                        const hospitalList = document.getElementById("hospital-list");
+                        hospitalList.innerHTML = "";
+                        data.hospitals.split(",").forEach(h => {
+                            const li = document.createElement("li");
+                            li.textContent = h.trim();
+                            hospitalList.appendChild(li);
+                        });
+
+                        // Police stations
+                        const policeList = document.getElementById("police-list");
+                        policeList.innerHTML = "";
+                        data.police_stations.split(",").forEach(p => {
+                            const li = document.createElement("li");
+                            li.textContent = p.trim();
+                            policeList.appendChild(li);
+                        });
+
+                        // Crime trend
+                        const crimeBox = document.querySelector(".info-box:nth-of-type(4) p");
+                        crimeBox.textContent = data.crime_trend;
+                    })
+                    .catch(err => {
+                        console.error("Backend fetch error:", err);
+                    });
+            } else {
+                alert("Location not found. Please try a different search.");
+            }
+        })
+        .catch(err => {
+            console.error("Geocoding error:", err);
+            alert("Error fetching location data.");
+        });
+});
+
+
+
+
+
+
+
+
     const map = L.map('map').setView([23.8103, 90.4125], 12); // Default to Dhaka
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'

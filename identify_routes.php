@@ -12,6 +12,13 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
 
+  <!-- Bootstrap CSS (already included, if not add this) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+
+
+
+
   <style>
     #map {
       height: 500px;
@@ -34,6 +41,55 @@
     .form-section h4 {
       margin-bottom: 20px;
     }
+    .modal-header-custom {
+    background: linear-gradient(135deg, #007bff, #00bcd4);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-bottom: none;
+  }
+
+  .modal-body-custom {
+    font-size: 16px;
+    background: #f9fbfd;
+    padding: 2rem;
+  }
+
+  .safety-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .safety-section h5 {
+    color: #0d6efd;
+    font-weight: bold;
+  }
+
+  .badge-score {
+    font-size: 1rem;
+    padding: 0.4em 0.75em;
+    background-color: #0dcaf0;
+    color: #fff;
+    border-radius: 0.5rem;
+    margin-left: 10px;
+  }
+
+  .icon-label {
+    font-weight: 600;
+    margin-top: 10px;
+    color: #495057;
+  }
+
+  .safety-list {
+    padding-left: 1.25rem;
+    list-style-type: disc;
+  }
+
+  .safety-list li {
+    margin-bottom: 0.4rem;
+  }
+
+
+
+
   </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
@@ -118,12 +174,43 @@
   </div>
 </div>
 
+
+<!-- Safety Info Modal -->
+<div class="modal fade" id="safetyModal" tabindex="-1" aria-labelledby="safetyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="modal-header modal-header-custom">
+        <h5 class="modal-title d-flex align-items-center" id="safetyModalLabel">
+          <i class="fas fa-shield-alt me-2"></i> Safety Overview
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body modal-body-custom" id="safetyContent"></div>
+    </div>
+  </div>
+</div>
+
+
+
 <!-- JS Libraries -->
 <script src="plugins/jquery/jquery.min.js"></script>
 <script src="plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="dist/js/adminlte.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+
+
+
+<!-- jQuery (required for Bootstrap 4, optional for Bootstrap 5) -->
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+<!-- Bootstrap Bundle JS (includes Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
 
 <script>
   const map = L.map('map').setView([23.8103, 90.4125], 13);
@@ -134,41 +221,100 @@
 
   let control;
 
-  function findRoute() {
-    const start = document.getElementById('start').value;
-    const end = document.getElementById('end').value;
+  async function fetchSafetyData(location) {
+    const res = await fetch(`get_safety_info.php?location=${encodeURIComponent(location)}`);
+    if (!res.ok) return null;
+    return await res.json();
+  }
 
-    if (!start || !end) return alert("Please enter both start and end locations.");
+  function formatTransport(transportData) {
+    const obj = JSON.parse(transportData);
+    return Object.entries(obj).map(([type, score]) => `<li>${type}: <strong>${score}</strong></li>`).join('');
+  }
 
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(start)}`)
-      .then(res => res.json())
-      .then(startData => {
-        if (!startData.length) throw new Error("Start location not found");
-        const startCoords = [parseFloat(startData[0].lat), parseFloat(startData[0].lon)];
+  async function findRoute() {
+    const start = document.getElementById('start').value.trim();
+    const end = document.getElementById('end').value.trim();
+    const time = document.getElementById('timeOfDay').value;
+    const mode = document.getElementById('mode').value;
+    const companion = document.getElementById('companion').value;
 
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(end)}`)
-          .then(res => res.json())
-          .then(endData => {
-            if (!endData.length) throw new Error("End location not found");
-            const endCoords = [parseFloat(endData[0].lat), parseFloat(endData[0].lon)];
+    if (!start || !end) {
+      alert("Please enter both start and end locations.");
+      return;
+    }
 
-            if (control) map.removeControl(control);
+    try {
+      const [startSafety, endSafety] = await Promise.all([
+        fetchSafetyData(start),
+        fetchSafetyData(end)
+      ]);
 
-            control = L.Routing.control({
-              waypoints: [
-                L.latLng(...startCoords),
-                L.latLng(...endCoords)
-              ],
-              lineOptions: {
-                styles: [{color: 'blue', weight: 6}]
-              },
-              createMarker: (i, wp) => L.marker(wp.latLng).bindPopup(i === 0 ? "Start" : "End"),
-              routeWhileDragging: false
-            }).addTo(map);
-          });
-      })
-      .catch(err => alert(err.message));
+      const [startData, endData] = await Promise.all([
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(start)}`).then(res => res.json()),
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(end)}`).then(res => res.json())
+      ]);
+
+      if (!startData.length || !endData.length) throw new Error("One or both locations not found.");
+
+      const startCoords = [parseFloat(startData[0].lat), parseFloat(startData[0].lon)];
+      const endCoords = [parseFloat(endData[0].lat), parseFloat(endData[0].lon)];
+
+      if (control) map.removeControl(control);
+
+      control = L.Routing.control({
+        waypoints: [
+          L.latLng(...startCoords),
+          L.latLng(...endCoords)
+        ],
+        lineOptions: {
+          styles: [{ color: 'blue', weight: 6 }]
+        },
+        createMarker: (i, wp) => L.marker(wp.latLng).bindPopup(i === 0 ? "Start" : "End"),
+        routeWhileDragging: false
+      }).addTo(map);
+
+      let msg = "";
+
+      if (startSafety && endSafety) {
+        msg += `
+          <div>
+            <h5>📍 <b>${start}</b></h5>
+            <p><strong>Safety Score:</strong> ${startSafety.safety_score}</p>
+            <p><strong>👮 Police Nearby:</strong> ${JSON.parse(startSafety.police_stations).join(', ')}</p>
+            <p><strong>🌧 Weather:</strong> ${startSafety.weather_advisory}</p>
+            <p><strong>📊 Crowd:</strong> ${startSafety.crowd_density}</p>
+            <p><strong>⚠️ Incidents:</strong> ${JSON.parse(startSafety.incidents).join(', ')}</p>
+            <p><strong>🚌 Transport:</strong><ul>${formatTransport(startSafety.transport_scores)}</ul></p>
+          </div>
+          <hr>
+          <div>
+            <h5>📍 <b>${end}</b></h5>
+            <p><strong>Safety Score:</strong> ${endSafety.safety_score}</p>
+            <p><strong>👮 Police Nearby:</strong> ${JSON.parse(endSafety.police_stations).join(', ')}</p>
+            <p><strong>🌧 Weather:</strong> ${endSafety.weather_advisory}</p>
+            <p><strong>📊 Crowd:</strong> ${endSafety.crowd_density}</p>
+            <p><strong>⚠️ Incidents:</strong> ${JSON.parse(endSafety.incidents).join(', ')}</p>
+            <p><strong>🚌 Transport:</strong><ul>${formatTransport(endSafety.transport_scores)}</ul></p>
+          </div>
+        `;
+      } else {
+        msg = "<p class='text-danger'>⚠️ Safety data not available for one or both locations.</p>";
+      }
+
+      // Show data in Bootstrap modal
+      document.getElementById('safetyContent').innerHTML = msg;
+      $('#safetyModal').modal('show');
+
+    } catch (err) {
+      alert(err.message);
+    }
   }
 </script>
+
+
+
+
+
 </body>
 </html>

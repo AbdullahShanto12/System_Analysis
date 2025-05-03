@@ -1,17 +1,19 @@
-<?php
-// Database connection details
-$servername = "localhost"; // Default localhost for XAMPP
-$username = "root";        // Default MySQL username in XAMPP
-$password = "";            // Default MySQL password (empty in XAMPP)
-$dbname = "safeway"; // database name
 
-// Create connection
+
+
+<?php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "safeway";
+
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
+// ❌ REMOVE THIS LINE IF IT EXISTS
+// echo "Connected successfully";
+
+// ✅ OPTIONAL: You can use this for error check only
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
-} else {
-    echo "Connected successfully!";
 }
 ?>

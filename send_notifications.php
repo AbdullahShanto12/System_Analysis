@@ -76,7 +76,6 @@
           <li class="nav-item"><a href="send_notifications.php" class="nav-link active"><i class="nav-icon fas fa-bell"></i><p>Send Notifications</p></a></li>
           <li class="nav-item"><a href="emergency_calls.php" class="nav-link"><i class="nav-icon fas fa-phone-alt"></i><p>Emergency Calls</p></a></li>
           <li class="nav-item"><a href="login.html" class="nav-link"><i class="nav-icon fas fa-sign-out-alt"></i><p>Logout</p></a></li>
-
         </ul>
       </nav>
     </div>
@@ -88,27 +87,29 @@
       <h2>Send Safety Notifications</h2>
       <p class="mb-4">Alert nearby users about safety hazards, disruptions, or real-time updates with precision and clarity.</p>
 
+      <?php if (isset($_GET['status'])): ?>
+        <div class="alert alert-<?php echo $_GET['status'] === 'success' ? 'success' : 'danger'; ?>">
+          <?php echo $_GET['status'] === 'success' ? '✅ Notification sent successfully!' : '❌ Failed to send notification. Try again.'; ?>
+        </div>
+      <?php endif; ?>
+
       <div class="notification-form">
         <form action="send_notification_handler.php" method="POST">
-          <!-- Notification Title -->
           <div class="form-group">
             <label for="title">Notification Title</label>
-            <input type="text" class="form-control" id="title" name="title" placeholder="e.g. Incident at Central Park" required>
+            <input type="text" class="form-control" id="title" name="title" required>
           </div>
 
-          <!-- Message Content -->
           <div class="form-group">
             <label for="message">Message Content</label>
-            <textarea class="form-control" id="message" name="message" rows="3" placeholder="e.g. Avoid the northern section of the park due to reported suspicious activity." required></textarea>
+            <textarea class="form-control" id="message" name="message" rows="3" required></textarea>
           </div>
 
-          <!-- Target Location -->
           <div class="form-group">
             <label for="location">Target Location</label>
-            <input type="text" class="form-control" id="location" name="location" placeholder="e.g. Brooklyn, NY or 11201" required>
+            <input type="text" class="form-control" id="location" name="location" required>
           </div>
 
-          <!-- Alert Category -->
           <div class="form-group">
             <label for="category">Alert Category</label>
             <select class="form-control" id="category" name="category">
@@ -120,7 +121,6 @@
             </select>
           </div>
 
-          <!-- Urgency Level -->
           <div class="form-group">
             <label for="urgency">Urgency Level</label>
             <select class="form-control" id="urgency" name="urgency">
@@ -131,27 +131,28 @@
             </select>
           </div>
 
-          <!-- Optional Link -->
           <div class="form-group">
             <label for="link">Optional Link</label>
-            <input type="url" class="form-control" id="link" name="link" placeholder="e.g. https://news.example.com/update123">
+            <input type="url" class="form-control" id="link" name="link" placeholder="https://example.com">
           </div>
 
-          <button type="submit" class="btn btn-danger btn-block"><i class="fas fa-paper-plane"></i> Send Notification</button>
+          <button type="submit" class="btn btn-danger btn-block">
+            <i class="fas fa-paper-plane"></i> Send Notification
+          </button>
         </form>
       </div>
 
-      <!-- Additional Features Section -->
+      <!-- Smart Features Section -->
       <div class="info-panel mt-5">
         <h5>🔔 Smart Notification Features</h5>
         <ul>
-          <li><strong>Location-Based Targeting:</strong> Automatically suggests nearby users based on geo-fencing.</li>
-          <li><strong>Priority Sorting:</strong> Notifications are auto-sorted for users based on urgency level.</li>
-          <li><strong>SMS & App Push Sync:</strong> Sends both SMS and in-app alert for critical urgency.</li>
-          <li><strong>Alert History Tracker:</strong> View sent alerts and their responses in the admin dashboard.</li>
-          <li><strong>Auto-Expire:</strong> Set expiry for temporary hazards (e.g., construction or weather).</li>
-          <li><strong>Real-Time Feedback:</strong> Users can mark alerts as helpful or request clarification.</li>
-          <li><strong>Category Icons:</strong> Visual icons and badges help quickly identify alert types on user interfaces.</li>
+          <li><strong>Location-Based Targeting:</strong> Suggests nearby users using geo-fencing.</li>
+          <li><strong>Priority Sorting:</strong> Auto-sorted for users by urgency.</li>
+          <li><strong>SMS & App Push Sync:</strong> Sends both SMS and app alert for critical urgency.</li>
+          <li><strong>Alert History Tracker:</strong> Track sent alerts in dashboard.</li>
+          <li><strong>Auto-Expire:</strong> Useful for weather or temporary hazards.</li>
+          <li><strong>Real-Time Feedback:</strong> Users can mark alerts as helpful.</li>
+          <li><strong>Category Icons:</strong> Helps quickly identify alert types.</li>
         </ul>
       </div>
 
@@ -159,15 +160,15 @@
       <div class="mt-4">
         <div class="example-alert">
           <i class="fas fa-bolt text-warning"></i>
-          <strong>⚠️ Weather Alert:</strong> Thunderstorm warning for Downtown area till 6 PM. Avoid open spaces.
+          <strong>⚠️ Weather Alert:</strong> Thunderstorm warning in Downtown till 6 PM.
         </div>
         <div class="example-alert">
           <i class="fas fa-road text-danger"></i>
-          <strong>🚧 Roadblock:</strong> Construction at Elm Street blocking 3rd Avenue. Expect delays.
+          <strong>🚧 Roadblock:</strong> Elm Street blocked at 3rd Avenue.
         </div>
         <div class="example-alert">
           <i class="fas fa-shield-alt text-danger"></i>
-          <strong>🔴 Suspicious Activity:</strong> Reports of theft near Central Plaza. Stay alert.
+          <strong>🔴 Suspicious Activity:</strong> Reports near Central Plaza.
         </div>
       </div>
     </div>

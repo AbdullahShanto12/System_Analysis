@@ -13,36 +13,46 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// If the form is submitted via POST
+// Process form when submitted via POST
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Collect form data
     $fullName = $_POST['fullName'];
     $email = $_POST['email'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);  // Hash the password
-    $role = $_POST['role'];  // Assuming role is selected in the form (e.g., 'user' or 'admin')
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT); 
+    $role = $_POST['role'];
 
-    // SQL to insert user data into the users table
-    $sql = "INSERT INTO users (full_name, email, password, role) VALUES (?, ?, ?, ?)";
+    // Check if email already exists
+    $checkEmailSql = "SELECT id FROM users WHERE email = ?";
+    $stmt = $conn->prepare($checkEmailSql);
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $stmt->store_result();
 
-    // Prepare and bind the query
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssss", $fullName, $email, $password, $role);  // Bind the variables to the SQL query
-
-    // Execute the query and check for success
-    if ($stmt->execute()) {
-        echo "Welcome to the SafeWay! Your account has been created.";
+    if ($stmt->num_rows > 0) {
+        // Email already exists, return error response
+        echo json_encode(["status" => "error", "message" => "Email already registered."]);
     } else {
-        echo "Error: " . $stmt->error;
+        // Email not found, proceed with registration
+        $insertSql = "INSERT INTO users (full_name, email, password, role) VALUES (?, ?, ?, ?)";
+        $insertStmt = $conn->prepare($insertSql);
+        $insertStmt->bind_param("ssss", $fullName, $email, $password, $role);
+
+        if ($insertStmt->execute()) {
+            echo json_encode(["status" => "success", "message" => "Welcome to SafeWay! Your account has been created."]);
+        } else {
+            echo json_encode(["status" => "error", "message" => "Registration failed. Please try again later."]);
+        }
+        $insertStmt->close();
     }
 
-    // Close statement and connection
     $stmt->close();
     $conn->close();
+    exit();
 }
-
-
-
 ?>
+
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -75,9 +85,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .btn-primary:hover {
             background-color: #4c0ba6;
         }
+        .alert {
+            display: none;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .alert-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .alert-error {
+            background-color: #dc3545;
+            color: white;
+        }
     </style>
-
-
 </head>
 <body>
 <div class="register-box">
@@ -86,8 +108,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
     <div class="card">
         <div class="card-body register-card-body">
+            <div id="alertBox" class="alert"></div>
             <p class="login-box-msg">Register a new membership</p>
-            <form id="signupForm" method="POST" action="signup.php">
+            <form id="signupForm" method="POST">
                 <div class="input-group mb-3">
                     <input type="text" id="fullName" name="fullName" class="form-control" placeholder="Full name" required>
                     <div class="input-group-append">
@@ -117,12 +140,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <option value="" disabled selected>Select your role</option>
                         <option value="admin">Admin</option>
                         <option value="Dwellers">New City Dwellers</option>
-                            <option value="Students">Students</option>
-                            <option value="Tourists">Tourists</option>
-                            <option value="Workers">Night Shift Workers</option>
-
-
-
+                        <option value="Students">Students</option>
+                        <option value="Tourists">Tourists</option>
+                        <option value="Workers">Night Shift Workers</option>
                     </select>
                 </div>
                 <div class="row">
@@ -146,8 +166,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 </div>
 
+<!-- jQuery (required for AJAX) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $("#signupForm").on("submit", function(e) {
+        e.preventDefault();
 
-
-
+        $.ajax({
+            url: "signup.php",
+            type: "POST",
+            data: $(this).serialize(),
+            dataType: "json",
+            success: function(response) {
+                const alertBox = $("#alertBox");
+                if (response.status === "success") {
+                    alertBox.removeClass().addClass("alert alert-success").text(response.message).fadeIn();
+                    $("#signupForm")[0].reset();
+                } else {
+                    alertBox.removeClass().addClass("alert alert-error").text(response.message).fadeIn();
+                }
+            },
+            error: function() {
+                alert("An unexpected error occurred. Please try again later.");
+            }
+        });
+    });
+</script>
 </body>
 </html>
