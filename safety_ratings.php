@@ -88,6 +88,11 @@
           <div class="card-body">
 
             <!-- Safety Ratings Table -->
+
+                        <!-- Map -->
+            <div id="map" class="mt-4"></div>
+
+
             <div class="table-container">
               <h5 class="mt-4">Detailed Safety Ratings Table</h5>
               <table class="table table-bordered table-striped">
@@ -128,8 +133,6 @@
               </table>
             </div>
 
-            <!-- Map -->
-            <div id="map" class="mt-4"></div>
 
           </div>
         </div>
