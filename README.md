@@ -30,6 +30,7 @@
 - XAMPP (Apache + MySQL)
 - Basic understanding of PHP and SQL
 
+
 🔒 Future Enhancements
 
 - Mobile PWA support 📱
