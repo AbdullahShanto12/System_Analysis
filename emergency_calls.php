@@ -1110,8 +1110,8 @@ require_once 'check_scheduled_calls.php';
 
     <!-- Scheduled Calls Section -->
     <div class="card p-4">
-        <div class="section-title">⏰ Schedule Emergency Call</div>
-        <p class="text-muted">Schedule a call to be made automatically at a specific time (up to 24 hours in advance)</p>
+        <div class="section-title">⏰  Emergency Call</div>
+        <p class="text-muted">A call to be made automatically at a specific time (up to 24 hours in advance)</p>
         
         <form method="POST" action="" id="scheduleCallForm">
             <div class="form-group">
@@ -1122,24 +1122,24 @@ require_once 'check_scheduled_calls.php';
                 <small class="form-text text-muted">Enter the phone number you want to call</small>
             </div>
             <div class="form-group">
-                <label for="scheduled_time">Schedule Time</label>
+                <label for="scheduled_time"> Time</label>
                 <input type="datetime-local" class="form-control" id="scheduled_time" name="scheduled_time" 
                        min="<?php echo date('Y-m-d\TH:i'); ?>" 
                        max="<?php echo date('Y-m-d\TH:i', strtotime('+24 hours')); ?>" required>
                 <small class="form-text text-muted">Select a time within the next 24 hours</small>
             </div>
-            <button type="submit" name="schedule_call" class="btn btn-primary">Schedule Call</button>
+            <button type="submit" name="schedule_call" class="btn btn-primary"> Call</button>
         </form>
 
         <?php if (!empty($scheduledCalls)): ?>
             <div class="mt-4">
-                <h5>Your Scheduled Calls</h5>
+                <h5>Your  Calls</h5>
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
                             <tr>
                                 <th>Phone Number</th>
-                                <th>Scheduled Time</th>
+                                <th>Call Time</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
